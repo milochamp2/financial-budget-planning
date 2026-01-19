@@ -7,15 +7,7 @@ import { useBudget } from '@/context/BudgetContext';
 import { EXPENSE_CATEGORIES } from '@/types/budget';
 
 export function BudgetOverview() {
-  const { summary } = useBudget();
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
+  const { summary, formatCurrency } = useBudget();
 
   const categoriesWithExpenses = EXPENSE_CATEGORIES.filter(
     (cat) => summary.expensesByCategory[cat.value] > 0

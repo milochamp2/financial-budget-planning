@@ -15,7 +15,7 @@ import { useBudget } from '@/context/BudgetContext';
 import { EXPENSE_CATEGORIES } from '@/types/budget';
 
 export function BudgetBarChart() {
-  const { summary } = useBudget();
+  const { summary, formatCurrency, state } = useBudget();
 
   const data = EXPENSE_CATEGORIES.filter(
     (cat) => summary.expensesByCategory[cat.value] > 0
@@ -29,11 +29,11 @@ export function BudgetBarChart() {
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 6);
 
-  const formatCurrency = (value: number) => {
+  const formatAxisCurrency = (value: number) => {
     if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}k`;
+      return `${value / 1000}k`;
     }
-    return `$${value}`;
+    return `${value}`;
   };
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { fullName: string; amount: number; color: string } }> }) => {
@@ -42,7 +42,7 @@ export function BudgetBarChart() {
       return (
         <div className="bg-gray-900/95 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 shadow-xl">
           <p className="text-white font-medium">{data.fullName}</p>
-          <p style={{ color: data.color }}>${data.amount.toLocaleString()}</p>
+          <p style={{ color: data.color }}>{formatCurrency(data.amount)}</p>
         </div>
       );
     }
@@ -68,7 +68,7 @@ export function BudgetBarChart() {
           <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
             <XAxis
               type="number"
-              tickFormatter={formatCurrency}
+              tickFormatter={formatAxisCurrency}
               stroke="#4b5563"
               fontSize={12}
               tickLine={false}

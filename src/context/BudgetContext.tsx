@@ -7,7 +7,9 @@ import {
   IncomeSource,
   Expense,
   ExpenseCategory,
+  CurrencyCode,
   EXPENSE_CATEGORIES,
+  CURRENCIES,
 } from '@/types/budget';
 
 interface BudgetContextType {
@@ -20,6 +22,8 @@ interface BudgetContextType {
   updateExpense: (id: string, expense: Partial<Expense>) => void;
   removeExpense: (id: string) => void;
   setSavingsGoal: (goal: number) => void;
+  setCurrency: (currency: CurrencyCode) => void;
+  formatCurrency: (value: number) => string;
   clearAll: () => void;
 }
 
@@ -31,6 +35,7 @@ const initialState: BudgetState = {
   incomes: [],
   expenses: [],
   savingsGoal: 20,
+  currency: 'USD',
 };
 
 function generateId(): string {
@@ -127,6 +132,26 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, savingsGoal: goal }));
   }, []);
 
+  const setCurrency = useCallback((currency: CurrencyCode) => {
+    setState((prev) => ({ ...prev, currency }));
+  }, []);
+
+  const formatCurrency = useCallback((value: number) => {
+    const currency = CURRENCIES.find((c) => c.code === state.currency) || CURRENCIES[0];
+
+    // Special formatting for currencies without decimals (like JPY, KRW)
+    const noDecimalCurrencies = ['JPY', 'KRW'];
+    const minimumFractionDigits = noDecimalCurrencies.includes(currency.code) ? 0 : 0;
+    const maximumFractionDigits = noDecimalCurrencies.includes(currency.code) ? 0 : 2;
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.code,
+      minimumFractionDigits,
+      maximumFractionDigits,
+    }).format(value);
+  }, [state.currency]);
+
   const clearAll = useCallback(() => {
     setState(initialState);
   }, []);
@@ -145,6 +170,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         updateExpense,
         removeExpense,
         setSavingsGoal,
+        setCurrency,
+        formatCurrency,
         clearAll,
       }}
     >

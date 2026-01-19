@@ -10,7 +10,7 @@ import { useBudget } from '@/context/BudgetContext';
 import { EXPENSE_CATEGORIES, ExpenseCategory } from '@/types/budget';
 
 export function ExpenseForm() {
-  const { state, addExpense, removeExpense } = useBudget();
+  const { state, addExpense, removeExpense, formatCurrency } = useBudget();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('food');
@@ -28,14 +28,6 @@ export function ExpenseForm() {
     setName('');
     setAmount('');
     setCategory('food');
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
   };
 
   const getCategoryColor = (cat: ExpenseCategory) => {

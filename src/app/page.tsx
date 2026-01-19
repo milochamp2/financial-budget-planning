@@ -11,6 +11,7 @@ import { IncomeVsExpenseChart } from '@/components/charts/IncomeVsExpenseChart';
 import { IncomeForm } from '@/components/forms/IncomeForm';
 import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import { Button } from '@/components/ui/Button';
+import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { useBudget } from '@/context/BudgetContext';
 
 export default function Home() {
@@ -34,20 +35,23 @@ export default function Home() {
                 <p className="text-sm text-gray-400">Smart financial planning</p>
               </div>
             </div>
-            {hasData && (
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<RotateCcw className="w-4 h-4" />}
-                onClick={() => {
-                  if (confirm('Are you sure you want to clear all data?')) {
-                    clearAll();
-                  }
-                }}
-              >
-                Reset
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              <CurrencySelector />
+              {hasData && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<RotateCcw className="w-4 h-4" />}
+                  onClick={() => {
+                    if (confirm('Are you sure you want to clear all data?')) {
+                      clearAll();
+                    }
+                  }}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
         </header>
 

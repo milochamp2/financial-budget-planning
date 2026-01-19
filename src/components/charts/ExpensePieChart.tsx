@@ -7,7 +7,7 @@ import { useBudget } from '@/context/BudgetContext';
 import { EXPENSE_CATEGORIES } from '@/types/budget';
 
 export function ExpensePieChart() {
-  const { summary } = useBudget();
+  const { summary, formatCurrency } = useBudget();
 
   const data = EXPENSE_CATEGORIES.filter(
     (cat) => summary.expensesByCategory[cat.value] > 0
@@ -16,14 +16,6 @@ export function ExpensePieChart() {
     value: summary.expensesByCategory[cat.value],
     color: cat.color,
   }));
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { color: string } }> }) => {
     if (active && payload && payload.length) {

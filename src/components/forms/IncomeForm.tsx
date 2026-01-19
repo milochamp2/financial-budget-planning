@@ -10,7 +10,7 @@ import { useBudget } from '@/context/BudgetContext';
 import { INCOME_CATEGORIES, IncomeSource } from '@/types/budget';
 
 export function IncomeForm() {
-  const { state, addIncome, removeIncome } = useBudget();
+  const { state, addIncome, removeIncome, formatCurrency } = useBudget();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<IncomeSource['category']>('salary');
@@ -28,14 +28,6 @@ export function IncomeForm() {
     setName('');
     setAmount('');
     setCategory('salary');
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
   };
 
   return (

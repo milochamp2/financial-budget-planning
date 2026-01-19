@@ -7,7 +7,7 @@ import { ProgressRing } from '../ui/ProgressRing';
 import { useBudget } from '@/context/BudgetContext';
 
 export function SavingsGoal() {
-  const { state, summary, setSavingsGoal } = useBudget();
+  const { state, summary, setSavingsGoal, formatCurrency } = useBudget();
 
   const goalProgress = summary.totalIncome > 0
     ? Math.min(100, (summary.savingsRate / state.savingsGoal) * 100)
@@ -15,14 +15,6 @@ export function SavingsGoal() {
 
   const isOnTrack = summary.savingsRate >= state.savingsGoal;
   const difference = summary.savingsRate - state.savingsGoal;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
 
   const targetSavings = (summary.totalIncome * state.savingsGoal) / 100;
   const actualSavings = summary.totalSavings;

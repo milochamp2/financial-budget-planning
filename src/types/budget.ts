@@ -33,10 +33,19 @@ export interface BudgetSummary {
   expensesByCategory: Record<ExpenseCategory, number>;
 }
 
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD' | 'CHF' | 'CNY' | 'INR' | 'PHP' | 'NGN' | 'BRL' | 'MXN' | 'KRW' | 'SGD';
+
+export interface Currency {
+  code: CurrencyCode;
+  symbol: string;
+  name: string;
+}
+
 export interface BudgetState {
   incomes: IncomeSource[];
   expenses: Expense[];
   savingsGoal: number;
+  currency: CurrencyCode;
 }
 
 export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string; color: string }[] = [
@@ -58,4 +67,22 @@ export const INCOME_CATEGORIES: { value: IncomeSource['category']; label: string
   { value: 'freelance', label: 'Freelance' },
   { value: 'investment', label: 'Investment' },
   { value: 'other', label: 'Other' },
+];
+
+export const CURRENCIES: Currency[] = [
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'PHP', symbol: '₱', name: 'Philippine Peso' },
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+  { code: 'MXN', symbol: 'MX$', name: 'Mexican Peso' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
 ];

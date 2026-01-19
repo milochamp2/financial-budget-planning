@@ -14,33 +14,7 @@ import { GlassCard } from '../ui/GlassCard';
 import { useBudget } from '@/context/BudgetContext';
 
 export function IncomeVsExpenseChart() {
-  const { summary } = useBudget();
-
-  const data = [
-    {
-      name: 'Income',
-      value: summary.totalIncome,
-      fill: '#22c55e',
-    },
-    {
-      name: 'Expenses',
-      value: summary.totalExpenses,
-      fill: '#ef4444',
-    },
-    {
-      name: 'Savings',
-      value: Math.max(0, summary.totalSavings),
-      fill: '#8b5cf6',
-    },
-  ];
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
+  const { summary, formatCurrency } = useBudget();
 
   const maxValue = Math.max(summary.totalIncome, summary.totalExpenses, 1);
 

@@ -6,16 +6,7 @@ import { StatCard } from '../ui/StatCard';
 import { useBudget } from '@/context/BudgetContext';
 
 export function SummaryCards() {
-  const { summary } = useBudget();
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const { summary, formatCurrency } = useBudget();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
