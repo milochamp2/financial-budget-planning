@@ -1,19 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Receipt, Trash2 } from 'lucide-react';
+import { Plus, Receipt, Trash2, Calendar } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { useBudget } from '@/context/BudgetContext';
-import { EXPENSE_CATEGORIES, ExpenseCategory } from '@/types/budget';
+import { EXPENSE_CATEGORIES, ExpenseCategory, getCurrentDate } from '@/types/budget';
 
 export function ExpenseForm() {
   const { state, addExpense, removeExpense, formatCurrency } = useBudget();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('food');
+  const [date, setDate] = useState(getCurrentDate());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,15 +24,24 @@ export function ExpenseForm() {
       name: name.trim(),
       amount: parseFloat(amount),
       category,
+      date,
     });
 
     setName('');
     setAmount('');
     setCategory('food');
+    setDate(getCurrentDate());
   };
 
   const getCategoryColor = (cat: ExpenseCategory) => {
     return EXPENSE_CATEGORIES.find((c) => c.value === cat)?.color || '#64748b';
+  };
+
+  const formatDateDisplay = (dateStr: string) => {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   return (
@@ -44,7 +54,7 @@ export function ExpenseForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Input
             placeholder="Expense name"
             value={name}
@@ -62,6 +72,12 @@ export function ExpenseForm() {
             options={EXPENSE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
             value={category}
             onChange={(val) => setCategory(val as ExpenseCategory)}
+          />
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            icon={<Calendar className="w-4 h-4" />}
           />
         </div>
         <Button
@@ -94,6 +110,8 @@ export function ExpenseForm() {
                     <p className="text-white font-medium">{expense.name}</p>
                     <p className="text-xs text-gray-500">
                       {EXPENSE_CATEGORIES.find((c) => c.value === expense.category)?.label}
+                      <span className="mx-1">•</span>
+                      <span>{formatDateDisplay(expense.date)}</span>
                     </p>
                   </div>
                 </div>

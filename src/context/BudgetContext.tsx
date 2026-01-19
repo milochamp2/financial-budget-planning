@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import {
   BudgetState,
   BudgetSummary,
+  DailySummary,
   IncomeSource,
   Expense,
   ExpenseCategory,
@@ -11,15 +12,19 @@ import {
   EXPENSE_CATEGORIES,
   CURRENCIES,
   getCurrentMonth,
+  getCurrentDate,
+  getMonthFromDate,
 } from '@/types/budget';
 
 interface BudgetContextType {
   state: BudgetState;
   summary: BudgetSummary;
-  addIncome: (income: Omit<IncomeSource, 'id' | 'month'>) => void;
+  getDailySummary: (date: string) => DailySummary;
+  getDailySummariesForMonth: (month: string) => Record<string, DailySummary>;
+  addIncome: (income: Omit<IncomeSource, 'id' | 'month' | 'date'> & { date?: string }) => void;
   updateIncome: (id: string, income: Partial<IncomeSource>) => void;
   removeIncome: (id: string) => void;
-  addExpense: (expense: Omit<Expense, 'id' | 'month'>) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'month' | 'date'> & { date?: string }) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
   removeExpense: (id: string) => void;
   setSavingsGoal: (goal: number) => void;
@@ -84,17 +89,21 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         if (!parsed.selectedMonth) {
           parsed.selectedMonth = getCurrentMonth();
         }
-        // Migration: add month to existing incomes/expenses if not present
+        // Migration: add month and date to existing incomes/expenses if not present
+        const currentDate = getCurrentDate();
+        const currentMonth = getCurrentMonth();
         if (parsed.incomes) {
           parsed.incomes = parsed.incomes.map((i: IncomeSource) => ({
             ...i,
-            month: i.month || getCurrentMonth(),
+            month: i.month || currentMonth,
+            date: i.date || currentDate,
           }));
         }
         if (parsed.expenses) {
           parsed.expenses = parsed.expenses.map((e: Expense) => ({
             ...e,
-            month: e.month || getCurrentMonth(),
+            month: e.month || currentMonth,
+            date: e.date || currentDate,
           }));
         }
         setState(parsed);
@@ -111,10 +120,63 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state, isHydrated]);
 
-  const addIncome = useCallback((income: Omit<IncomeSource, 'id' | 'month'>) => {
+  const getDailySummary = useCallback((date: string): DailySummary => {
+    const dayIncomes = state.incomes.filter((i) => i.date === date);
+    const dayExpenses = state.expenses.filter((e) => e.date === date);
+
+    const income = dayIncomes.reduce((sum, i) => sum + i.amount, 0);
+    const expenses = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    return {
+      date,
+      income,
+      expenses,
+      savings: income - expenses,
+    };
+  }, [state.incomes, state.expenses]);
+
+  const getDailySummariesForMonth = useCallback((month: string): Record<string, DailySummary> => {
+    const summaries: Record<string, DailySummary> = {};
+
+    // Get all incomes and expenses for the month
+    const monthIncomes = state.incomes.filter((i) => i.month === month);
+    const monthExpenses = state.expenses.filter((e) => e.month === month);
+
+    // Group by date
+    const incomesByDate: Record<string, number> = {};
+    const expensesByDate: Record<string, number> = {};
+
+    monthIncomes.forEach((i) => {
+      incomesByDate[i.date] = (incomesByDate[i.date] || 0) + i.amount;
+    });
+
+    monthExpenses.forEach((e) => {
+      expensesByDate[e.date] = (expensesByDate[e.date] || 0) + e.amount;
+    });
+
+    // Combine all dates
+    const allDates = new Set([...Object.keys(incomesByDate), ...Object.keys(expensesByDate)]);
+
+    allDates.forEach((date) => {
+      const income = incomesByDate[date] || 0;
+      const expenses = expensesByDate[date] || 0;
+      summaries[date] = {
+        date,
+        income,
+        expenses,
+        savings: income - expenses,
+      };
+    });
+
+    return summaries;
+  }, [state.incomes, state.expenses]);
+
+  const addIncome = useCallback((income: Omit<IncomeSource, 'id' | 'month' | 'date'> & { date?: string }) => {
+    const date = income.date || getCurrentDate();
+    const month = getMonthFromDate(date);
     setState((prev) => ({
       ...prev,
-      incomes: [...prev.incomes, { ...income, id: generateId(), month: prev.selectedMonth }],
+      incomes: [...prev.incomes, { ...income, id: generateId(), month, date }],
     }));
   }, []);
 
@@ -132,10 +194,12 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'month'>) => {
+  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'month' | 'date'> & { date?: string }) => {
+    const date = expense.date || getCurrentDate();
+    const month = getMonthFromDate(date);
     setState((prev) => ({
       ...prev,
-      expenses: [...prev.expenses, { ...expense, id: generateId(), month: prev.selectedMonth }],
+      expenses: [...prev.expenses, { ...expense, id: generateId(), month, date }],
     }));
   }, []);
 
@@ -192,6 +256,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       value={{
         state,
         summary,
+        getDailySummary,
+        getDailySummariesForMonth,
         addIncome,
         updateIncome,
         removeIncome,

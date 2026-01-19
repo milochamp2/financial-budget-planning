@@ -4,6 +4,7 @@ export interface IncomeSource {
   amount: number;
   category: 'salary' | 'freelance' | 'investment' | 'other';
   month: string; // "2025-01" format
+  date: string; // "2025-01-15" format (full date)
 }
 
 export interface Expense {
@@ -12,6 +13,14 @@ export interface Expense {
   amount: number;
   category: ExpenseCategory;
   month: string; // "2025-01" format
+  date: string; // "2025-01-15" format (full date)
+}
+
+export interface DailySummary {
+  date: string;
+  income: number;
+  expenses: number;
+  savings: number;
 }
 
 export type ExpenseCategory =
@@ -78,6 +87,32 @@ export function getNextMonth(monthStr: string): string {
   const [year, month] = monthStr.split('-').map(Number);
   const date = new Date(year, month); // month - 1 + 1 = month for next
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Helper function to get current date string
+export function getCurrentDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper function to get month from date
+export function getMonthFromDate(dateStr: string): string {
+  return dateStr.substring(0, 7); // "2025-01-15" -> "2025-01"
+}
+
+// Helper function to get days in a month
+export function getDaysInMonth(monthStr: string): number {
+  const [year, month] = monthStr.split('-').map(Number);
+  return new Date(year, month, 0).getDate();
+}
+
+// Helper function to get first day of week for a month (0 = Sunday)
+export function getFirstDayOfMonth(monthStr: string): number {
+  const [year, month] = monthStr.split('-').map(Number);
+  return new Date(year, month - 1, 1).getDay();
 }
 
 export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string; color: string }[] = [

@@ -12,7 +12,7 @@ import { IncomeForm } from '@/components/forms/IncomeForm';
 import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
-import { MonthSelector } from '@/components/ui/MonthSelector';
+import { CalendarDropdown } from '@/components/ui/CalendarDropdown';
 import { useBudget } from '@/context/BudgetContext';
 
 export default function Home() {
@@ -56,9 +56,9 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Month Selector */}
+        {/* Calendar Dropdown */}
         <section className="mb-6">
-          <MonthSelector />
+          <CalendarDropdown />
         </section>
 
         {/* Summary Cards */}

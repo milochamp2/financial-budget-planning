@@ -1,19 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, Trash2, Calendar } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { useBudget } from '@/context/BudgetContext';
-import { INCOME_CATEGORIES, IncomeSource } from '@/types/budget';
+import { INCOME_CATEGORIES, IncomeSource, getCurrentDate } from '@/types/budget';
 
 export function IncomeForm() {
   const { state, addIncome, removeIncome, formatCurrency } = useBudget();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<IncomeSource['category']>('salary');
+  const [date, setDate] = useState(getCurrentDate());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,11 +24,20 @@ export function IncomeForm() {
       name: name.trim(),
       amount: parseFloat(amount),
       category,
+      date,
     });
 
     setName('');
     setAmount('');
     setCategory('salary');
+    setDate(getCurrentDate());
+  };
+
+  const formatDateDisplay = (dateStr: string) => {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   return (
@@ -40,7 +50,7 @@ export function IncomeForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Input
             placeholder="Income name"
             value={name}
@@ -58,6 +68,12 @@ export function IncomeForm() {
             options={INCOME_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
             value={category}
             onChange={(val) => setCategory(val as IncomeSource['category'])}
+          />
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            icon={<Calendar className="w-4 h-4" />}
           />
         </div>
         <Button type="submit" icon={<Plus className="w-4 h-4" />} className="w-full md:w-auto">
@@ -80,7 +96,11 @@ export function IncomeForm() {
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <div>
                     <p className="text-white font-medium">{income.name}</p>
-                    <p className="text-xs text-gray-500 capitalize">{income.category}</p>
+                    <p className="text-xs text-gray-500">
+                      <span className="capitalize">{income.category}</span>
+                      <span className="mx-1">•</span>
+                      <span>{formatDateDisplay(income.date)}</span>
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
