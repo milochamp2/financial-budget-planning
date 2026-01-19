@@ -10,19 +10,21 @@ import {
   CurrencyCode,
   EXPENSE_CATEGORIES,
   CURRENCIES,
+  getCurrentMonth,
 } from '@/types/budget';
 
 interface BudgetContextType {
   state: BudgetState;
   summary: BudgetSummary;
-  addIncome: (income: Omit<IncomeSource, 'id'>) => void;
+  addIncome: (income: Omit<IncomeSource, 'id' | 'month'>) => void;
   updateIncome: (id: string, income: Partial<IncomeSource>) => void;
   removeIncome: (id: string) => void;
-  addExpense: (expense: Omit<Expense, 'id'>) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'month'>) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
   removeExpense: (id: string) => void;
   setSavingsGoal: (goal: number) => void;
   setCurrency: (currency: CurrencyCode) => void;
+  setSelectedMonth: (month: string) => void;
   formatCurrency: (value: number) => string;
   clearAll: () => void;
 }
@@ -36,6 +38,7 @@ const initialState: BudgetState = {
   expenses: [],
   savingsGoal: 20,
   currency: 'USD',
+  selectedMonth: getCurrentMonth(),
 };
 
 function generateId(): string {
@@ -43,13 +46,17 @@ function generateId(): string {
 }
 
 function calculateSummary(state: BudgetState): BudgetSummary {
-  const totalIncome = state.incomes.reduce((sum, income) => sum + income.amount, 0);
-  const totalExpenses = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // Filter incomes and expenses by selected month
+  const monthIncomes = state.incomes.filter((i) => i.month === state.selectedMonth);
+  const monthExpenses = state.expenses.filter((e) => e.month === state.selectedMonth);
+
+  const totalIncome = monthIncomes.reduce((sum, income) => sum + income.amount, 0);
+  const totalExpenses = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const totalSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (totalSavings / totalIncome) * 100 : 0;
 
   const expensesByCategory = EXPENSE_CATEGORIES.reduce((acc, cat) => {
-    acc[cat.value] = state.expenses
+    acc[cat.value] = monthExpenses
       .filter((e) => e.category === cat.value)
       .reduce((sum, e) => sum + e.amount, 0);
     return acc;
@@ -72,7 +79,25 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setState(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Migration: add selectedMonth if not present
+        if (!parsed.selectedMonth) {
+          parsed.selectedMonth = getCurrentMonth();
+        }
+        // Migration: add month to existing incomes/expenses if not present
+        if (parsed.incomes) {
+          parsed.incomes = parsed.incomes.map((i: IncomeSource) => ({
+            ...i,
+            month: i.month || getCurrentMonth(),
+          }));
+        }
+        if (parsed.expenses) {
+          parsed.expenses = parsed.expenses.map((e: Expense) => ({
+            ...e,
+            month: e.month || getCurrentMonth(),
+          }));
+        }
+        setState(parsed);
       } catch (e) {
         console.error('Failed to parse saved budget data:', e);
       }
@@ -86,10 +111,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state, isHydrated]);
 
-  const addIncome = useCallback((income: Omit<IncomeSource, 'id'>) => {
+  const addIncome = useCallback((income: Omit<IncomeSource, 'id' | 'month'>) => {
     setState((prev) => ({
       ...prev,
-      incomes: [...prev.incomes, { ...income, id: generateId() }],
+      incomes: [...prev.incomes, { ...income, id: generateId(), month: prev.selectedMonth }],
     }));
   }, []);
 
@@ -107,10 +132,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
+  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'month'>) => {
     setState((prev) => ({
       ...prev,
-      expenses: [...prev.expenses, { ...expense, id: generateId() }],
+      expenses: [...prev.expenses, { ...expense, id: generateId(), month: prev.selectedMonth }],
     }));
   }, []);
 
@@ -136,6 +161,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, currency }));
   }, []);
 
+  const setSelectedMonth = useCallback((month: string) => {
+    setState((prev) => ({ ...prev, selectedMonth: month }));
+  }, []);
+
   const formatCurrency = useCallback((value: number) => {
     const currency = CURRENCIES.find((c) => c.code === state.currency) || CURRENCIES[0];
 
@@ -153,7 +182,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   }, [state.currency]);
 
   const clearAll = useCallback(() => {
-    setState(initialState);
+    setState({ ...initialState, selectedMonth: getCurrentMonth() });
   }, []);
 
   const summary = calculateSummary(state);
@@ -171,6 +200,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         removeExpense,
         setSavingsGoal,
         setCurrency,
+        setSelectedMonth,
         formatCurrency,
         clearAll,
       }}

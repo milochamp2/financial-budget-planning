@@ -74,13 +74,13 @@ export function ExpenseForm() {
         </Button>
       </form>
 
-      {state.expenses.length > 0 && (
+      {state.expenses.filter((e) => e.month === state.selectedMonth).length > 0 && (
         <div className="space-y-3">
           <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">
             Added Expenses
           </p>
           <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-            {state.expenses.map((expense) => (
+            {state.expenses.filter((e) => e.month === state.selectedMonth).map((expense) => (
               <div
                 key={expense.id}
                 className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group"

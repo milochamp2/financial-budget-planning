@@ -3,6 +3,7 @@ export interface IncomeSource {
   name: string;
   amount: number;
   category: 'salary' | 'freelance' | 'investment' | 'other';
+  month: string; // "2025-01" format
 }
 
 export interface Expense {
@@ -10,6 +11,7 @@ export interface Expense {
   name: string;
   amount: number;
   category: ExpenseCategory;
+  month: string; // "2025-01" format
 }
 
 export type ExpenseCategory =
@@ -46,6 +48,36 @@ export interface BudgetState {
   expenses: Expense[];
   savingsGoal: number;
   currency: CurrencyCode;
+  selectedMonth: string; // "2025-01" format
+}
+
+// Helper function to get current month string
+export function getCurrentMonth(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+// Helper function to format month for display (e.g., "January 2025")
+export function formatMonthDisplay(monthStr: string): string {
+  const [year, month] = monthStr.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1);
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+// Helper function to get previous month
+export function getPreviousMonth(monthStr: string): string {
+  const [year, month] = monthStr.split('-').map(Number);
+  const date = new Date(year, month - 2); // month - 1 for 0-indexed, another -1 for previous
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Helper function to get next month
+export function getNextMonth(monthStr: string): string {
+  const [year, month] = monthStr.split('-').map(Number);
+  const date = new Date(year, month); // month - 1 + 1 = month for next
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
 export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string; color: string }[] = [

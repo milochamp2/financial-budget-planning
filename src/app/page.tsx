@@ -12,6 +12,7 @@ import { IncomeForm } from '@/components/forms/IncomeForm';
 import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
+import { MonthSelector } from '@/components/ui/MonthSelector';
 import { useBudget } from '@/context/BudgetContext';
 
 export default function Home() {
@@ -54,6 +55,11 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        {/* Month Selector */}
+        <section className="mb-6">
+          <MonthSelector />
+        </section>
 
         {/* Summary Cards */}
         <section className="mb-8">

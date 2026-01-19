@@ -65,13 +65,13 @@ export function IncomeForm() {
         </Button>
       </form>
 
-      {state.incomes.length > 0 && (
+      {state.incomes.filter((i) => i.month === state.selectedMonth).length > 0 && (
         <div className="space-y-3">
           <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">
             Added Income
           </p>
           <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-            {state.incomes.map((income) => (
+            {state.incomes.filter((i) => i.month === state.selectedMonth).map((income) => (
               <div
                 key={income.id}
                 className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group"
