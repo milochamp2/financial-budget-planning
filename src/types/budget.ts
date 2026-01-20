@@ -57,8 +57,30 @@ export interface BudgetState {
   expenses: Expense[];
   savingsGoal: number;
   currency: CurrencyCode;
+  baseCurrency: CurrencyCode; // Currency used for storage (default USD)
   selectedMonth: string; // "2025-01" format
+  exchangeRates: Record<CurrencyCode, number>; // Exchange rates relative to USD
+  lastRatesUpdate: string | null; // ISO date string of last update
 }
+
+// Exchange rates relative to USD (fallback values)
+export const DEFAULT_EXCHANGE_RATES: Record<CurrencyCode, number> = {
+  USD: 1,
+  EUR: 0.92,
+  GBP: 0.79,
+  JPY: 149.50,
+  CAD: 1.36,
+  AUD: 1.53,
+  CHF: 0.88,
+  CNY: 7.24,
+  INR: 83.12,
+  PHP: 55.80,
+  NGN: 1550.00,
+  BRL: 4.97,
+  MXN: 17.15,
+  KRW: 1320.00,
+  SGD: 1.34,
+};
 
 // Helper function to get current month string
 export function getCurrentMonth(): string {

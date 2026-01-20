@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Target, TrendingUp, AlertTriangle, Check } from 'lucide-react';
+import { Target, TrendingUp, AlertTriangle, Check, MessageCircle } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { ProgressRing } from '../ui/ProgressRing';
 import { useBudget } from '@/context/BudgetContext';
 
 export function SavingsGoal() {
-  const { state, summary, setSavingsGoal, formatCurrency } = useBudget();
+  const { state, summary, savingsGoalStatus, setSavingsGoal, formatCurrency } = useBudget();
 
   const goalProgress = summary.totalIncome > 0
     ? Math.min(100, (summary.savingsRate / state.savingsGoal) * 100)
@@ -103,6 +103,32 @@ export function SavingsGoal() {
               <span>5%</span>
               <span>50%</span>
             </div>
+          </div>
+
+          {/* Savings Goal Status Message */}
+          <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 ${
+            savingsGoalStatus.type === 'success'
+              ? 'bg-emerald-500/10 border border-emerald-500/20'
+              : savingsGoalStatus.type === 'warning'
+                ? 'bg-amber-500/10 border border-amber-500/20'
+                : 'bg-red-500/10 border border-red-500/20'
+          }`}>
+            <MessageCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+              savingsGoalStatus.type === 'success'
+                ? 'text-emerald-400'
+                : savingsGoalStatus.type === 'warning'
+                  ? 'text-amber-400'
+                  : 'text-red-400'
+            }`} />
+            <p className={`text-sm ${
+              savingsGoalStatus.type === 'success'
+                ? 'text-emerald-300'
+                : savingsGoalStatus.type === 'warning'
+                  ? 'text-amber-300'
+                  : 'text-red-300'
+            }`}>
+              {savingsGoalStatus.message}
+            </p>
           </div>
         </div>
       </div>

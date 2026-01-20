@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, TrendingDown, PiggyBank, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, PiggyBank, Percent, Wallet } from 'lucide-react';
 import { StatCard } from '../ui/StatCard';
 import { useBudget } from '@/context/BudgetContext';
 
 export function SummaryCards() {
-  const { summary, formatCurrency } = useBudget();
+  const { summary, remainingBalance, formatCurrency } = useBudget();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <StatCard
         title="Total Income"
         value={formatCurrency(summary.totalIncome)}
@@ -25,6 +25,14 @@ export function SummaryCards() {
         icon={TrendingDown}
         glowColor="#ef444430"
         iconColor="#ef4444"
+      />
+      <StatCard
+        title="Remaining Balance"
+        value={formatCurrency(remainingBalance)}
+        subtitle={remainingBalance >= 0 ? 'Available funds' : 'Over budget!'}
+        icon={Wallet}
+        glowColor={remainingBalance >= 0 ? '#22c55e30' : '#ef444430'}
+        iconColor={remainingBalance >= 0 ? '#22c55e' : '#ef4444'}
       />
       <StatCard
         title="Net Savings"

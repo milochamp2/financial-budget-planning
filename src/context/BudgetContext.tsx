@@ -11,6 +11,7 @@ import {
   CurrencyCode,
   EXPENSE_CATEGORIES,
   CURRENCIES,
+  DEFAULT_EXCHANGE_RATES,
   getCurrentMonth,
   getCurrentDate,
   getMonthFromDate,
@@ -19,6 +20,8 @@ import {
 interface BudgetContextType {
   state: BudgetState;
   summary: BudgetSummary;
+  remainingBalance: number; // Total income minus total expenses (all time for selected month)
+  savingsGoalStatus: { message: string; type: 'success' | 'warning' | 'danger' };
   getDailySummary: (date: string) => DailySummary;
   getDailySummariesForMonth: (month: string) => Record<string, DailySummary>;
   addIncome: (income: Omit<IncomeSource, 'id' | 'month' | 'date'> & { date?: string }) => void;
@@ -31,6 +34,8 @@ interface BudgetContextType {
   setCurrency: (currency: CurrencyCode) => void;
   setSelectedMonth: (month: string) => void;
   formatCurrency: (value: number) => string;
+  convertCurrency: (amount: number, from: CurrencyCode, to: CurrencyCode) => number;
+  refreshExchangeRates: () => Promise<void>;
   clearAll: () => void;
 }
 
@@ -43,27 +48,42 @@ const initialState: BudgetState = {
   expenses: [],
   savingsGoal: 20,
   currency: 'USD',
+  baseCurrency: 'USD',
   selectedMonth: getCurrentMonth(),
+  exchangeRates: DEFAULT_EXCHANGE_RATES,
+  lastRatesUpdate: null,
 };
+
+// Free exchange rate API (no key required)
+const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest/USD';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
-function calculateSummary(state: BudgetState): BudgetSummary {
+function calculateSummary(state: BudgetState, convertFn: (amount: number, from: CurrencyCode, to: CurrencyCode) => number): BudgetSummary {
   // Filter incomes and expenses by selected month
   const monthIncomes = state.incomes.filter((i) => i.month === state.selectedMonth);
   const monthExpenses = state.expenses.filter((e) => e.month === state.selectedMonth);
 
-  const totalIncome = monthIncomes.reduce((sum, income) => sum + income.amount, 0);
-  const totalExpenses = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // All amounts are stored in baseCurrency (USD), convert to display currency
+  const totalIncome = monthIncomes.reduce((sum, income) => {
+    const converted = convertFn(income.amount, state.baseCurrency, state.currency);
+    return sum + converted;
+  }, 0);
+
+  const totalExpenses = monthExpenses.reduce((sum, expense) => {
+    const converted = convertFn(expense.amount, state.baseCurrency, state.currency);
+    return sum + converted;
+  }, 0);
+
   const totalSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (totalSavings / totalIncome) * 100 : 0;
 
   const expensesByCategory = EXPENSE_CATEGORIES.reduce((acc, cat) => {
     acc[cat.value] = monthExpenses
       .filter((e) => e.category === cat.value)
-      .reduce((sum, e) => sum + e.amount, 0);
+      .reduce((sum, e) => sum + convertFn(e.amount, state.baseCurrency, state.currency), 0);
     return acc;
   }, {} as Record<ExpenseCategory, number>);
 
@@ -73,6 +93,49 @@ function calculateSummary(state: BudgetState): BudgetSummary {
     totalSavings,
     savingsRate,
     expensesByCategory,
+  };
+}
+
+function getSavingsGoalStatus(savingsRate: number, savingsGoal: number): { message: string; type: 'success' | 'warning' | 'danger' } {
+  const percentage = savingsGoal > 0 ? (savingsRate / savingsGoal) * 100 : 0;
+
+  if (savingsRate >= savingsGoal) {
+    const surplus = savingsRate - savingsGoal;
+    if (surplus >= 10) {
+      return {
+        message: `Excellent! You're exceeding your goal by ${surplus.toFixed(1)}%. Keep up the amazing work!`,
+        type: 'success'
+      };
+    }
+    return {
+      message: `Great job! You've hit your ${savingsGoal}% savings target this month!`,
+      type: 'success'
+    };
+  } else if (percentage >= 75) {
+    const needed = savingsGoal - savingsRate;
+    return {
+      message: `Almost there! You need just ${needed.toFixed(1)}% more to reach your goal.`,
+      type: 'warning'
+    };
+  } else if (percentage >= 50) {
+    return {
+      message: `You're halfway to your goal. Consider reducing some expenses.`,
+      type: 'warning'
+    };
+  } else if (savingsRate > 0) {
+    return {
+      message: `You're saving ${savingsRate.toFixed(1)}%, but your goal is ${savingsGoal}%. Review your spending.`,
+      type: 'danger'
+    };
+  } else if (savingsRate < 0) {
+    return {
+      message: `Warning: You're spending more than you earn! You're ${Math.abs(savingsRate).toFixed(1)}% over budget.`,
+      type: 'danger'
+    };
+  }
+  return {
+    message: `Start saving to work towards your ${savingsGoal}% goal.`,
+    type: 'danger'
   };
 }
 
@@ -88,6 +151,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         // Migration: add selectedMonth if not present
         if (!parsed.selectedMonth) {
           parsed.selectedMonth = getCurrentMonth();
+        }
+        // Migration: add baseCurrency if not present
+        if (!parsed.baseCurrency) {
+          parsed.baseCurrency = 'USD';
+        }
+        // Migration: add exchangeRates if not present
+        if (!parsed.exchangeRates) {
+          parsed.exchangeRates = DEFAULT_EXCHANGE_RATES;
         }
         // Migration: add month and date to existing incomes/expenses if not present
         const currentDate = getCurrentDate();
@@ -114,6 +185,57 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     setIsHydrated(true);
   }, []);
 
+  // Fetch exchange rates on mount and when needed
+  const refreshExchangeRates = useCallback(async () => {
+    try {
+      const response = await fetch(EXCHANGE_RATE_API);
+      if (!response.ok) throw new Error('Failed to fetch rates');
+      const data = await response.json();
+
+      const rates: Record<CurrencyCode, number> = { ...DEFAULT_EXCHANGE_RATES };
+      const supportedCurrencies: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'INR', 'PHP', 'NGN', 'BRL', 'MXN', 'KRW', 'SGD'];
+
+      supportedCurrencies.forEach((code) => {
+        if (data.rates[code]) {
+          rates[code] = data.rates[code];
+        }
+      });
+
+      setState((prev) => ({
+        ...prev,
+        exchangeRates: rates,
+        lastRatesUpdate: new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error('Failed to fetch exchange rates:', error);
+      // Keep using existing or default rates
+    }
+  }, []);
+
+  // Fetch rates on initial load if stale (older than 1 hour)
+  useEffect(() => {
+    if (isHydrated) {
+      const lastUpdate = state.lastRatesUpdate ? new Date(state.lastRatesUpdate) : null;
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+      if (!lastUpdate || lastUpdate < oneHourAgo) {
+        refreshExchangeRates();
+      }
+    }
+  }, [isHydrated, refreshExchangeRates, state.lastRatesUpdate]);
+
+  // Convert currency function
+  const convertCurrency = useCallback((amount: number, from: CurrencyCode, to: CurrencyCode): number => {
+    if (from === to) return amount;
+
+    const rates = state.exchangeRates;
+    // Convert from source to USD, then from USD to target
+    const amountInUSD = amount / rates[from];
+    const amountInTarget = amountInUSD * rates[to];
+
+    return amountInTarget;
+  }, [state.exchangeRates]);
+
   useEffect(() => {
     if (isHydrated) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -124,8 +246,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const dayIncomes = state.incomes.filter((i) => i.date === date);
     const dayExpenses = state.expenses.filter((e) => e.date === date);
 
-    const income = dayIncomes.reduce((sum, i) => sum + i.amount, 0);
-    const expenses = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const income = dayIncomes.reduce((sum, i) => sum + convertCurrency(i.amount, state.baseCurrency, state.currency), 0);
+    const expenses = dayExpenses.reduce((sum, e) => sum + convertCurrency(e.amount, state.baseCurrency, state.currency), 0);
 
     return {
       date,
@@ -133,7 +255,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       expenses,
       savings: income - expenses,
     };
-  }, [state.incomes, state.expenses]);
+  }, [state.incomes, state.expenses, state.baseCurrency, state.currency, convertCurrency]);
 
   const getDailySummariesForMonth = useCallback((month: string): Record<string, DailySummary> => {
     const summaries: Record<string, DailySummary> = {};
@@ -142,16 +264,18 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const monthIncomes = state.incomes.filter((i) => i.month === month);
     const monthExpenses = state.expenses.filter((e) => e.month === month);
 
-    // Group by date
+    // Group by date with currency conversion
     const incomesByDate: Record<string, number> = {};
     const expensesByDate: Record<string, number> = {};
 
     monthIncomes.forEach((i) => {
-      incomesByDate[i.date] = (incomesByDate[i.date] || 0) + i.amount;
+      const converted = convertCurrency(i.amount, state.baseCurrency, state.currency);
+      incomesByDate[i.date] = (incomesByDate[i.date] || 0) + converted;
     });
 
     monthExpenses.forEach((e) => {
-      expensesByDate[e.date] = (expensesByDate[e.date] || 0) + e.amount;
+      const converted = convertCurrency(e.amount, state.baseCurrency, state.currency);
+      expensesByDate[e.date] = (expensesByDate[e.date] || 0) + converted;
     });
 
     // Combine all dates
@@ -169,7 +293,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     });
 
     return summaries;
-  }, [state.incomes, state.expenses]);
+  }, [state.incomes, state.expenses, state.baseCurrency, state.currency, convertCurrency]);
 
   const addIncome = useCallback((income: Omit<IncomeSource, 'id' | 'month' | 'date'> & { date?: string }) => {
     const date = income.date || getCurrentDate();
@@ -249,13 +373,21 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     setState({ ...initialState, selectedMonth: getCurrentMonth() });
   }, []);
 
-  const summary = calculateSummary(state);
+  const summary = calculateSummary(state, convertCurrency);
+
+  // Calculate remaining balance (income - expenses for selected month)
+  const remainingBalance = summary.totalSavings;
+
+  // Get savings goal status message
+  const savingsGoalStatus = getSavingsGoalStatus(summary.savingsRate, state.savingsGoal);
 
   return (
     <BudgetContext.Provider
       value={{
         state,
         summary,
+        remainingBalance,
+        savingsGoalStatus,
         getDailySummary,
         getDailySummariesForMonth,
         addIncome,
@@ -268,6 +400,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         setCurrency,
         setSelectedMonth,
         formatCurrency,
+        convertCurrency,
+        refreshExchangeRates,
         clearAll,
       }}
     >
