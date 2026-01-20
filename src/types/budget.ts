@@ -2,6 +2,7 @@ export interface IncomeSource {
   id: string;
   name: string;
   amount: number;
+  currency: CurrencyCode; // Currency the amount was entered in
   category: 'salary' | 'freelance' | 'investment' | 'other';
   month: string; // "2025-01" format
   date: string; // "2025-01-15" format (full date)
@@ -11,6 +12,7 @@ export interface Expense {
   id: string;
   name: string;
   amount: number;
+  currency: CurrencyCode; // Currency the amount was entered in
   category: ExpenseCategory;
   month: string; // "2025-01" format
   date: string; // "2025-01-15" format (full date)
@@ -56,8 +58,7 @@ export interface BudgetState {
   incomes: IncomeSource[];
   expenses: Expense[];
   savingsGoal: number;
-  currency: CurrencyCode;
-  baseCurrency: CurrencyCode; // Currency used for storage (default USD)
+  currency: CurrencyCode; // Display currency
   selectedMonth: string; // "2025-01" format
   exchangeRates: Record<CurrencyCode, number>; // Exchange rates relative to USD
   lastRatesUpdate: string | null; // ISO date string of last update

@@ -7,10 +7,10 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { useBudget } from '@/context/BudgetContext';
-import { EXPENSE_CATEGORIES, ExpenseCategory, getCurrentDate } from '@/types/budget';
+import { EXPENSE_CATEGORIES, ExpenseCategory, getCurrentDate, CURRENCIES } from '@/types/budget';
 
 export function ExpenseForm() {
-  const { state, addExpense, removeExpense, formatCurrency } = useBudget();
+  const { state, addExpense, removeExpense, formatCurrency, convertCurrency } = useBudget();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('food');
@@ -42,6 +42,17 @@ export function ExpenseForm() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  // Format amount in its original currency
+  const formatOriginalCurrency = (amount: number, currencyCode: string) => {
+    const noDecimalCurrencies = ['JPY', 'KRW'];
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: noDecimalCurrencies.includes(currencyCode) ? 0 : 0,
+      maximumFractionDigits: noDecimalCurrencies.includes(currencyCode) ? 0 : 2,
+    }).format(amount);
   };
 
   return (
@@ -116,9 +127,16 @@ export function ExpenseForm() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-red-400 font-semibold">
-                    -{formatCurrency(expense.amount)}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-red-400 font-semibold block">
+                      -{formatOriginalCurrency(expense.amount, expense.currency)}
+                    </span>
+                    {expense.currency !== state.currency && (
+                      <span className="text-xs text-gray-500">
+                        ≈ -{formatCurrency(convertCurrency(expense.amount, expense.currency, state.currency))}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => removeExpense(expense.id)}
                     className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all"

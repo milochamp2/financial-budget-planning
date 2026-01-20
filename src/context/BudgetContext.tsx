@@ -24,10 +24,10 @@ interface BudgetContextType {
   savingsGoalStatus: { message: string; type: 'success' | 'warning' | 'danger' };
   getDailySummary: (date: string) => DailySummary;
   getDailySummariesForMonth: (month: string) => Record<string, DailySummary>;
-  addIncome: (income: Omit<IncomeSource, 'id' | 'month' | 'date'> & { date?: string }) => void;
+  addIncome: (income: Omit<IncomeSource, 'id' | 'month' | 'date' | 'currency'> & { date?: string }) => void;
   updateIncome: (id: string, income: Partial<IncomeSource>) => void;
   removeIncome: (id: string) => void;
-  addExpense: (expense: Omit<Expense, 'id' | 'month' | 'date'> & { date?: string }) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'month' | 'date' | 'currency'> & { date?: string }) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
   removeExpense: (id: string) => void;
   setSavingsGoal: (goal: number) => void;
@@ -48,7 +48,6 @@ const initialState: BudgetState = {
   expenses: [],
   savingsGoal: 20,
   currency: 'USD',
-  baseCurrency: 'USD',
   selectedMonth: getCurrentMonth(),
   exchangeRates: DEFAULT_EXCHANGE_RATES,
   lastRatesUpdate: null,
@@ -66,14 +65,14 @@ function calculateSummary(state: BudgetState, convertFn: (amount: number, from: 
   const monthIncomes = state.incomes.filter((i) => i.month === state.selectedMonth);
   const monthExpenses = state.expenses.filter((e) => e.month === state.selectedMonth);
 
-  // All amounts are stored in baseCurrency (USD), convert to display currency
+  // Convert each entry from its stored currency to the display currency
   const totalIncome = monthIncomes.reduce((sum, income) => {
-    const converted = convertFn(income.amount, state.baseCurrency, state.currency);
+    const converted = convertFn(income.amount, income.currency, state.currency);
     return sum + converted;
   }, 0);
 
   const totalExpenses = monthExpenses.reduce((sum, expense) => {
-    const converted = convertFn(expense.amount, state.baseCurrency, state.currency);
+    const converted = convertFn(expense.amount, expense.currency, state.currency);
     return sum + converted;
   }, 0);
 
@@ -83,7 +82,7 @@ function calculateSummary(state: BudgetState, convertFn: (amount: number, from: 
   const expensesByCategory = EXPENSE_CATEGORIES.reduce((acc, cat) => {
     acc[cat.value] = monthExpenses
       .filter((e) => e.category === cat.value)
-      .reduce((sum, e) => sum + convertFn(e.amount, state.baseCurrency, state.currency), 0);
+      .reduce((sum, e) => sum + convertFn(e.amount, e.currency, state.currency), 0);
     return acc;
   }, {} as Record<ExpenseCategory, number>);
 
@@ -152,22 +151,24 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         if (!parsed.selectedMonth) {
           parsed.selectedMonth = getCurrentMonth();
         }
-        // Migration: add baseCurrency if not present
-        if (!parsed.baseCurrency) {
-          parsed.baseCurrency = 'USD';
-        }
         // Migration: add exchangeRates if not present
         if (!parsed.exchangeRates) {
           parsed.exchangeRates = DEFAULT_EXCHANGE_RATES;
         }
-        // Migration: add month and date to existing incomes/expenses if not present
+        // Migration: remove old baseCurrency field if present
+        if (parsed.baseCurrency) {
+          delete parsed.baseCurrency;
+        }
+        // Migration: add month, date, and currency to existing incomes/expenses if not present
         const currentDate = getCurrentDate();
         const currentMonth = getCurrentMonth();
+        const currentCurrency = parsed.currency || 'USD';
         if (parsed.incomes) {
           parsed.incomes = parsed.incomes.map((i: IncomeSource) => ({
             ...i,
             month: i.month || currentMonth,
             date: i.date || currentDate,
+            currency: i.currency || currentCurrency, // Use current display currency as default for old entries
           }));
         }
         if (parsed.expenses) {
@@ -175,6 +176,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             ...e,
             month: e.month || currentMonth,
             date: e.date || currentDate,
+            currency: e.currency || currentCurrency, // Use current display currency as default for old entries
           }));
         }
         setState(parsed);
@@ -246,8 +248,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const dayIncomes = state.incomes.filter((i) => i.date === date);
     const dayExpenses = state.expenses.filter((e) => e.date === date);
 
-    const income = dayIncomes.reduce((sum, i) => sum + convertCurrency(i.amount, state.baseCurrency, state.currency), 0);
-    const expenses = dayExpenses.reduce((sum, e) => sum + convertCurrency(e.amount, state.baseCurrency, state.currency), 0);
+    const income = dayIncomes.reduce((sum, i) => sum + convertCurrency(i.amount, i.currency, state.currency), 0);
+    const expenses = dayExpenses.reduce((sum, e) => sum + convertCurrency(e.amount, e.currency, state.currency), 0);
 
     return {
       date,
@@ -255,7 +257,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       expenses,
       savings: income - expenses,
     };
-  }, [state.incomes, state.expenses, state.baseCurrency, state.currency, convertCurrency]);
+  }, [state.incomes, state.expenses, state.currency, convertCurrency]);
 
   const getDailySummariesForMonth = useCallback((month: string): Record<string, DailySummary> => {
     const summaries: Record<string, DailySummary> = {};
@@ -264,17 +266,17 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const monthIncomes = state.incomes.filter((i) => i.month === month);
     const monthExpenses = state.expenses.filter((e) => e.month === month);
 
-    // Group by date with currency conversion
+    // Group by date with currency conversion (from entry currency to display currency)
     const incomesByDate: Record<string, number> = {};
     const expensesByDate: Record<string, number> = {};
 
     monthIncomes.forEach((i) => {
-      const converted = convertCurrency(i.amount, state.baseCurrency, state.currency);
+      const converted = convertCurrency(i.amount, i.currency, state.currency);
       incomesByDate[i.date] = (incomesByDate[i.date] || 0) + converted;
     });
 
     monthExpenses.forEach((e) => {
-      const converted = convertCurrency(e.amount, state.baseCurrency, state.currency);
+      const converted = convertCurrency(e.amount, e.currency, state.currency);
       expensesByDate[e.date] = (expensesByDate[e.date] || 0) + converted;
     });
 
@@ -293,14 +295,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     });
 
     return summaries;
-  }, [state.incomes, state.expenses, state.baseCurrency, state.currency, convertCurrency]);
+  }, [state.incomes, state.expenses, state.currency, convertCurrency]);
 
-  const addIncome = useCallback((income: Omit<IncomeSource, 'id' | 'month' | 'date'> & { date?: string }) => {
+  const addIncome = useCallback((income: Omit<IncomeSource, 'id' | 'month' | 'date' | 'currency'> & { date?: string }) => {
     const date = income.date || getCurrentDate();
     const month = getMonthFromDate(date);
     setState((prev) => ({
       ...prev,
-      incomes: [...prev.incomes, { ...income, id: generateId(), month, date }],
+      incomes: [...prev.incomes, { ...income, id: generateId(), month, date, currency: prev.currency }],
     }));
   }, []);
 
@@ -318,12 +320,12 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'month' | 'date'> & { date?: string }) => {
+  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'month' | 'date' | 'currency'> & { date?: string }) => {
     const date = expense.date || getCurrentDate();
     const month = getMonthFromDate(date);
     setState((prev) => ({
       ...prev,
-      expenses: [...prev.expenses, { ...expense, id: generateId(), month, date }],
+      expenses: [...prev.expenses, { ...expense, id: generateId(), month, date, currency: prev.currency }],
     }));
   }, []);
 
