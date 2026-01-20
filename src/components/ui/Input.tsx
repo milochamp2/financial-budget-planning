@@ -15,7 +15,7 @@ export function Input({ label, error, icon, className = '', ...props }: InputPro
         <label className="block text-sm font-medium text-gray-400 mb-2">{label}</label>
       )}
       <div className="relative">
-        {icon && (
+        {icon && props.type !== 'date' && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{icon}</div>
         )}
         <input
@@ -25,7 +25,8 @@ export function Input({ label, error, icon, className = '', ...props }: InputPro
             text-white text-sm placeholder-gray-500
             focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20
             transition-all duration-200
-            ${icon ? 'pl-11' : ''}
+            ${icon && props.type !== 'date' ? 'pl-11' : ''}
+            ${props.type === 'date' ? 'pl-4 min-w-[140px]' : ''}
             ${error ? 'border-red-500/50' : ''}
             ${className}
           `}

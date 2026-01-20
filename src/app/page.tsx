@@ -13,11 +13,17 @@ import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import { Button } from '@/components/ui/Button';
 import { CurrencySelector } from '@/components/ui/CurrencySelector';
 import { CalendarDropdown } from '@/components/ui/CalendarDropdown';
+import { WelcomeScreen } from '@/components/ui/WelcomeScreen';
 import { useBudget } from '@/context/BudgetContext';
 
 export default function Home() {
-  const { clearAll, state } = useBudget();
+  const { clearAll, state, setUserName } = useBudget();
   const hasData = state.incomes.length > 0 || state.expenses.length > 0;
+
+  // Show welcome screen if user hasn't entered their name
+  if (!state.userName) {
+    return <WelcomeScreen onComplete={setUserName} />;
+  }
 
   return (
     <main className="relative min-h-screen">
@@ -31,9 +37,9 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                  BudgetFlow
+                  Hi {state.userName}, welcome to BudgetFlow
                 </h1>
-                <p className="text-sm text-gray-400">Smart financial planning</p>
+                <p className="text-sm text-gray-400">Let&apos;s manage your finances together</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

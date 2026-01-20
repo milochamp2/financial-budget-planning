@@ -36,6 +36,7 @@ interface BudgetContextType {
   formatCurrency: (value: number) => string;
   convertCurrency: (amount: number, from: CurrencyCode, to: CurrencyCode) => number;
   refreshExchangeRates: () => Promise<void>;
+  setUserName: (name: string) => void;
   clearAll: () => void;
 }
 
@@ -44,6 +45,7 @@ const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 const STORAGE_KEY = 'budget-planner-data';
 
 const initialState: BudgetState = {
+  userName: null,
   incomes: [],
   expenses: [],
   savingsGoal: 20,
@@ -371,6 +373,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }).format(value);
   }, [state.currency]);
 
+  const setUserName = useCallback((name: string) => {
+    setState((prev) => ({ ...prev, userName: name }));
+  }, []);
+
   const clearAll = useCallback(() => {
     setState({ ...initialState, selectedMonth: getCurrentMonth() });
   }, []);
@@ -404,6 +410,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         formatCurrency,
         convertCurrency,
         refreshExchangeRates,
+        setUserName,
         clearAll,
       }}
     >

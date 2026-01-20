@@ -55,6 +55,7 @@ export interface Currency {
 }
 
 export interface BudgetState {
+  userName: string | null; // User's preferred name
   incomes: IncomeSource[];
   expenses: Expense[];
   savingsGoal: number;
