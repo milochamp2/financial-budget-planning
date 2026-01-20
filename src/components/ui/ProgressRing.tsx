@@ -34,6 +34,7 @@ export function ProgressRing({
           fill="none"
           stroke={backgroundColor}
           strokeWidth={strokeWidth}
+          strokeLinecap="round"
         />
         <circle
           cx={size / 2}

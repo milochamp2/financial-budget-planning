@@ -22,13 +22,14 @@ export function Select({ label, options, error, onChange, className = '', ...pro
       )}
       <select
         className={`
-          w-full px-4 py-3 rounded-xl
+          w-full px-4 py-3.5 rounded-2xl
           bg-white/5 border border-white/10
-          text-white
+          text-white text-sm
           focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20
           transition-all duration-200
           appearance-none
           cursor-pointer
+          truncate
           ${error ? 'border-red-500/50' : ''}
           ${className}
         `}
@@ -37,7 +38,8 @@ export function Select({ label, options, error, onChange, className = '', ...pro
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'right 12px center',
-          backgroundSize: '20px',
+          backgroundSize: '18px',
+          paddingRight: '40px',
         }}
         {...props}
       >

@@ -20,12 +20,12 @@ export function Input({ label, error, icon, className = '', ...props }: InputPro
         )}
         <input
           className={`
-            w-full px-4 py-3 rounded-xl
+            w-full px-4 py-3.5 rounded-2xl
             bg-white/5 border border-white/10
-            text-white placeholder-gray-500
+            text-white text-sm placeholder-gray-500
             focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20
             transition-all duration-200
-            ${icon ? 'pl-10' : ''}
+            ${icon ? 'pl-11' : ''}
             ${error ? 'border-red-500/50' : ''}
             ${className}
           `}
